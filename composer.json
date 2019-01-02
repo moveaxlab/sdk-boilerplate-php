@@ -1,5 +1,5 @@
 {
-    "name": "elevenlab/php-sdk-boilerplate",
+    "name": "elevenlab/sdk-boilerplate",
     "description": "Useful Boilerplate library that can be used to build PHP SDKs for your application",
     "type": "library",
     "keywords": ["php", "sdk", "boilerplate"],
