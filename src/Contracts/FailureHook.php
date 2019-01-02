@@ -13,6 +13,6 @@ interface FailureHook extends Hook
      * @param Response|null $response
      * @param \Throwable|null $exception
      */
-    function __construct(Action $action, Response &$response = null, \Throwable $exception = null);
+    function __construct(Action $action, Response $response = null, \Throwable $exception = null);
 
 }

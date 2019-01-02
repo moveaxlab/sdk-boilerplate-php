@@ -12,6 +12,6 @@ interface PreSendHook extends Hook
      * @param Action $action
      * @param Request $request
      */
-    function __construct(Action $action, Request &$request);
+    function __construct(Action $action, Request $request);
 
 }

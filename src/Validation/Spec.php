@@ -94,6 +94,19 @@ class Spec implements Arrayable, Jsonable, \JsonSerializable
     }
 
     /**
+     * Parses a schema from a JSON string
+     *
+     * @param $jsonString
+     * @return Spec
+     */
+    public static function fromJson($jsonString)
+    {
+
+        return self::parse(json_decode($jsonString, true));
+
+    }
+
+    /**
      * Add rules to the parent schema
      *
      * @param array $additionalRules

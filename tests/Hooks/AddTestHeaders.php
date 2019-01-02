@@ -3,22 +3,11 @@
 namespace SDK\Boilerplate\Tests\Hooks;
 
 
-use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Contracts\Request;
-use SDK\Boilerplate\Contracts\PreSendHook;
+use SDK\Boilerplate\Hooks\PreSendHook;
 use SDK\Boilerplate\RunState;
 
-class AddTestHeaders implements PreSendHook
+class AddTestHeaders extends PreSendHook
 {
-
-    protected $action;
-    protected $request;
-
-    public function __construct(Action $action, Request &$request)
-    {
-        $this->action = $action;
-        $this->request = &$request;
-    }
 
     public function run(RunState $state)
     {

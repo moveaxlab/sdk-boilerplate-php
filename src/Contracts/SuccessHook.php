@@ -12,6 +12,6 @@ interface SuccessHook
      * @param Action $action
      * @param Response $response
      */
-    function __construct(Action $action, Response &$response);
+    function __construct(Action $action, Response $response);
 
 }

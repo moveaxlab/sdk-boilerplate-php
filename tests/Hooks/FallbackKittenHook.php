@@ -3,26 +3,11 @@
 namespace SDK\Boilerplate\Tests\Hooks;
 
 
-use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Contracts\FailureHook;
-use SDK\Boilerplate\Contracts\Response;
+use SDK\Boilerplate\Hooks\FailureHook;
 use SDK\Boilerplate\RunState;
 
-class FallbackKittenHook implements FailureHook
+class FallbackKittenHook extends FailureHook
 {
-
-    protected $action;
-    protected $response;
-    protected $exception;
-
-    public function __construct(Action $action, Response &$response = null, \Throwable $exception = null)
-    {
-
-        $this->action = $action;
-        $this->response = &$response;
-        $this->exception = $exception;
-
-    }
 
     public function run(RunState $state)
     {

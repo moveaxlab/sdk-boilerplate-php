@@ -9,9 +9,9 @@ use SDK\Boilerplate\Contracts\Hook;
 use SDK\Boilerplate\Http\HttpClient;
 use SDK\Boilerplate\Validation\Spec;
 use SDK\Boilerplate\Utils\RouteCompiler;
-use SDK\Boilerplate\Contracts\FailureHook;
-use SDK\Boilerplate\Contracts\SuccessHook;
-use SDK\Boilerplate\Contracts\PreSendHook;
+use SDK\Boilerplate\Hooks\FailureHook;
+use SDK\Boilerplate\Hooks\SuccessHook;
+use SDK\Boilerplate\Hooks\PreSendHook;
 use SDK\Boilerplate\Http\GuzzleHttpClient;
 use SDK\Boilerplate\Exceptions\SdkException;
 use Illuminate\Validation\ValidationException;
@@ -138,6 +138,13 @@ abstract class Action implements ActionInterface
     protected $originalResponse;
 
     /**
+     * The action run state
+     *
+     * @var RunState
+     */
+    protected $runState;
+
+    /**
      * The response
      *
      * @var IResponse
@@ -148,12 +155,14 @@ abstract class Action implements ActionInterface
      * Action constructor.
      * @param Context $context
      * @param CacheInterface $cache
+     * @param RunState $runState
      */
-    public function __construct(Context $context, CacheInterface $cache)
+    public function __construct(Context $context, CacheInterface $cache, RunState $runState = null)
     {
 
         $this->context = $context;
         $this->cache = $cache;
+        $this->runState = $runState ?: new RunState();
         $this->buildClient();
 
     }
@@ -233,6 +242,28 @@ abstract class Action implements ActionInterface
     public function getRequestBody()
     {
         return $this->requestBody;
+    }
+
+    /**
+     * Set the action run state
+     *
+     * @param RunState $runState
+     * @return $this
+     */
+    public function setRunState(RunState $runState)
+    {
+        $this->runState = $runState;
+        return $this;
+    }
+
+    /**
+     * Get the action run state
+     *
+     * @return RunState
+     */
+    public function getRunState()
+    {
+        return $this->runState;
     }
 
     /**
@@ -491,7 +522,7 @@ abstract class Action implements ActionInterface
     {
         if(!is_subclass_of(PreSendHook::class, $hookClass))
             throw new SdkException(
-                "Pre-send hooks must implement interface " . PreSendHook::class
+                "Pre-send hooks must be a subclass of " . PreSendHook::class
             );
 
         $this->preSendHooks[] = $hookClass;
@@ -507,7 +538,7 @@ abstract class Action implements ActionInterface
     {
         if(!is_subclass_of(FailureHook::class, $hookClass))
             throw new SdkException(
-                "Failure hooks must implement interface " . FailureHook::class
+                "Failure hooks must be a subclass of " . FailureHook::class
             );
 
         $this->failureHooks[] = $hookClass;
@@ -524,7 +555,7 @@ abstract class Action implements ActionInterface
 
         if(!is_subclass_of(SuccessHook::class, $hookClass))
             throw new SdkException(
-                "Success hooks must implement interface " . SuccessHook::class
+                "Success hooks must be a subclass of " . SuccessHook::class
             );
 
         $this->successHooks[] = $hookClass;
@@ -559,14 +590,14 @@ abstract class Action implements ActionInterface
      * @param array $hooks
      * @param RunState $state
      */
-    public function runHooks(array $hooks, RunState $state)
+    public function runHooks(array $hooks)
     {
 
         foreach ($hooks as $hookClass) {
 
-            if(is_subclass_of($hookClass, PreSendHook::class)) {
+            if(is_subclass_of( PreSendHook::class, $hookClass)) {
                 $hookInstance = new $hookClass($this, $this->request);
-            } else if(is_subclass_of($hookClass, FailureHook::class)) {
+            } else if(is_subclass_of( FailureHook::class, $hookClass)) {
                 $hookInstance = new $hookClass($this, $this->response, $this->clientException);
             } else {
                 $hookInstance = new $hookClass($this, $this->response);
@@ -575,7 +606,7 @@ abstract class Action implements ActionInterface
             /**
              * @var Hook $hookInstance
              */
-            $hookInstance->run($state);
+            $hookInstance->run($this->runState);
         }
 
     }
@@ -650,9 +681,8 @@ abstract class Action implements ActionInterface
     public function run()
     {
 
-        $runState = new RunState();
         $this->originalRequest = $this->request = $this->makeRequest();
-        $this->runHooks($this->preSendHooks, $runState);
+        $this->runHooks($this->preSendHooks);
 
         try {
 
@@ -663,7 +693,7 @@ abstract class Action implements ActionInterface
 
             $this->clientException = $e;
             if($this->client->hasResponse()) $this->originalResponse = $this->response = $this->client->getResponse();
-            $this->runHooks($this->failureHooks, $runState);
+            $this->runHooks($this->failureHooks);
 
             if(is_null($this->response)) throw $e;
 
@@ -674,7 +704,7 @@ abstract class Action implements ActionInterface
         }
 
 
-        $this->runHooks($this->successHooks, $runState);
+        $this->runHooks($this->successHooks);
         $responseBodyClass = static::responseClass();
         $this->responseBody =  $responseBodyClass::parse($this->response->body());
         $this->responseBody->validate();

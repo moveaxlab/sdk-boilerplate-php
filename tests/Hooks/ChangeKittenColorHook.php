@@ -2,24 +2,11 @@
 
 namespace SDK\Boilerplate\Tests\Hooks;
 
-
-use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Contracts\Response;
-use SDK\Boilerplate\Contracts\SuccessHook;
+use SDK\Boilerplate\Hooks\SuccessHook;
 use SDK\Boilerplate\RunState;
 
-class ChangeKittenColorHook implements SuccessHook
+class ChangeKittenColorHook extends SuccessHook
 {
-
-    protected $action;
-
-    protected $response;
-
-    public function __construct(Action $action, Response &$response)
-    {
-        $this->action = $action;
-        $this->response = &$response;
-    }
 
     public function run(RunState $state)
     {

@@ -4,14 +4,13 @@ namespace SDK\Boilerplate\Tests\Actions;
 
 
 use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Tests\Exceptions\KittenNotFoundException;
-use SDK\Boilerplate\Tests\Hooks\AddTestHeaders;
-use SDK\Boilerplate\Tests\Hooks\ChangeKittenColorHook;
-use SDK\Boilerplate\Tests\Hooks\FallbackKittenHook;
-use SDK\Boilerplate\Tests\Hooks\DumpKittenData;
-use SDK\Boilerplate\Tests\Objects\Kitten;
-use SDK\Boilerplate\Tests\Objects\KittensListResponse;
 use SDK\Boilerplate\Validation\Spec;
+use SDK\Boilerplate\Tests\Objects\Kitten;
+use SDK\Boilerplate\Tests\Hooks\AddTestHeaders;
+use SDK\Boilerplate\Tests\Hooks\DumpKittenData;
+use SDK\Boilerplate\Tests\Hooks\FallbackKittenHook;
+use SDK\Boilerplate\Tests\Hooks\ChangeKittenColorHook;
+use SDK\Boilerplate\Tests\Exceptions\KittenNotFoundException;
 
 class GetKitten extends Action
 {
