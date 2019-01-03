@@ -380,6 +380,53 @@ abstract class Action implements ActionInterface
     }
 
     /**
+     * Set the header key
+     *
+     * @param $key
+     * @param $value
+     * @return $this
+     */
+    public function setHeader($key, $value)
+    {
+        Arr::set($this->headers, $key, $value);
+        return $this;
+    }
+
+    /**
+     * Set the headers
+     *
+     * @param array $headers
+     * @return $this
+     */
+    public function setHeaders(array $headers)
+    {
+        $this->headers = $headers;
+        return $this;
+    }
+
+    /**
+     * Get the header value
+     *
+     * @param $key
+     * @param null $default
+     * @return mixed
+     */
+    public function getHeader($key, $default = null)
+    {
+        return Arr::get($this->headers, $key, $default);
+    }
+
+    /**
+     * Get the headers
+     *
+     * @return array
+     */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
      * Add a route parameter
      *
      * @param string $key
@@ -407,12 +454,16 @@ abstract class Action implements ActionInterface
     /**
      * Set the route parameters array
      *
-     * @param array $routeParameters
+     * @param array|ActionObject $routeParameters
      * @return $this
+     * @throws SdkException
      */
-    public function setRouteParameters(array $routeParameters)
+    public function setRouteParameters($routeParameters)
     {
-        $this->queryParams = $routeParameters;
+        if(!is_array($routeParameters) && !($routeParameters instanceof ActionObject))
+            throw new SdkException('Route parameters must be an array or instance of an ActionObject');
+
+        $this->urlParams = is_array($routeParameters) ? $routeParameters : $routeParameters->toArray();
         return $this;
     }
 
@@ -485,12 +536,17 @@ abstract class Action implements ActionInterface
     /**
      * Set the query parameters array
      *
-     * @param array $queryParams
+     * @param array|ActionObject $queryParams
      * @return $this
+     * @throws SdkException
      */
-    public function setQueryParameters(array $queryParams)
+    public function setQueryParameters($queryParams)
     {
-        $this->queryParams = $queryParams;
+
+        if(!is_array($queryParams) && !($queryParams instanceof ActionObject))
+            throw new SdkException('Route parameters must be an array or instance of an ActionObject');
+
+        $this->queryParams = is_array($queryParams) ? $queryParams : $queryParams->toArray();
         return $this;
     }
 
