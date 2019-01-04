@@ -3,7 +3,6 @@
 namespace SDK\Boilerplate;
 
 
-use function GuzzleHttp\Promise\promise_for;
 use Illuminate\Support\Arr;
 use SDK\Boilerplate\Contracts\Schemable;
 use SDK\Boilerplate\Traits\HasAttributes;

@@ -7,13 +7,6 @@ interface Factory
 {
 
     /**
-     * Defines the name => action mapping
-     *
-     * @return array
-     */
-    static function actions();
-
-    /**
      * Make an action
      *
      * @param string $what

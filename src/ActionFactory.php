@@ -4,7 +4,7 @@ namespace SDK\Boilerplate;
 
 use Psr\SimpleCache\CacheInterface;
 use SDK\Boilerplate\Cache\DummyCache;
-use SDK\Boilerplate\Contracts\Factory;
+use SDK\Boilerplate\Contracts\ActionFactory as Factory;
 use SDK\Boilerplate\Exceptions\SdkException;
 
 abstract class ActionFactory implements Factory
