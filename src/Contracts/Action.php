@@ -2,29 +2,16 @@
 
 namespace SDK\Boilerplate\Contracts;
 
+use SDK\Boilerplate\SdkObject;
+use SDK\Boilerplate\SdkObjectCollection;
+
 interface Action
 {
 
-    const GET = 'GET';
-    const POST = 'POST';
-    const PATCH = 'PATCH';
-    const PUT = 'PUT';
-    const DELETE = 'DELETE';
-    const OPTIONS = 'OPTIONS';
-    const HEAD = 'HEAD';
-
     /**
-     * Define the endpoint route
+     * Runs the action
      *
-     * @return string
+     * @return SdkObject|SdkObjectCollection|mixed
      */
-    static function route();
-
-    /**
-     * Define the endpoint verb
-     *
-     * @return string
-     */
-    static function verb();
-
+    public function run();
 }
