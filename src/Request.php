@@ -60,7 +60,7 @@ class Request implements RequestInterface
 
         $this->method = $method;
         $this->route = $route;
-        $this->query = new ParameterBag($query);
+        $this->query = new ParameterBag(array_filter($query));
         $this->headers = new ParameterBag($headers);
         $this->body = $body;
 

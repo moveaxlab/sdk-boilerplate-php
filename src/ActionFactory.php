@@ -27,22 +27,22 @@ abstract class ActionFactory implements Factory
     /**
      * ActionFactory constructor.
      * @param Context $context
-     * @param CacheInterface|null $cache
      */
-    public function __construct(Context $context, CacheInterface $cache = null)
+    public function __construct(Context $context)
     {
 
         $this->context = $context;
-        $this->cache = $cache ?: new DummyCache();
 
     }
 
     /**
      * @param string $what
+     * @param array $parameters
+     *
      * @return Contracts\Action
      * @throws SdkException
      */
-    public function make($what)
+    public function make($what = null, ...$parameters)
     {
 
         $actions = static::actions();
