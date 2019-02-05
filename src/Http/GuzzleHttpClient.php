@@ -6,6 +6,7 @@ namespace SDK\Boilerplate\Http;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Str;
 use SDK\Boilerplate\Contracts\Request;
 use SDK\Boilerplate\Response;
 
@@ -18,6 +19,13 @@ class GuzzleHttpClient implements HttpClient
     protected $client;
 
     /**
+     * Hostname
+     *
+     * @var string
+     */
+    protected $hostname;
+
+    /**
      * The response object
      *
      * @var Response
@@ -25,12 +33,25 @@ class GuzzleHttpClient implements HttpClient
     protected $response;
 
     /**
+     * Default configuration parameters
+     *
+     * @var array
+     */
+    protected $defaultConfig = [
+        'timeout' => 20,
+        'verify_ssl_certs' => true
+    ];
+
+    /**
      * GuzzleHttpClient constructor.
+     *
+     * @param string $hostname
      * @param array $config
      */
-    public function __construct(array $config)
+    public function __construct($hostname, array $config = [])
     {
 
+        $config = array_merge($this->defaultConfig, $config);
         $this->client = new Client($config);
 
     }
@@ -44,7 +65,7 @@ class GuzzleHttpClient implements HttpClient
     {
         $guzzleRequest = new \GuzzleHttp\Psr7\Request(
             $request->method(),
-            $request->url().$request->queryString(),
+            $this->buildUrl($request->route(), $request->queryString()),
             $request->headers(),
             $request->body()
         );
@@ -60,6 +81,21 @@ class GuzzleHttpClient implements HttpClient
             $guzzleResponse->getHeaders(),
             json_decode($guzzleResponse->getBody()->getContents(), true)
         );
+    }
+
+    protected function buildUrl($route, $queryString)
+    {
+
+        $hostname = Str::endsWith($this->hostname, '/') ?
+            Str::replaceLast('/', '', $this->hostname) :
+            $this->hostname;
+
+        $route = Str::startsWith($route, '/') ?
+            Str::replaceFirst('/', '', $route)
+            : $route;
+
+        return "$hostname/$route$queryString";
+
     }
 
     /**

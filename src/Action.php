@@ -2,21 +2,16 @@
 
 namespace SDK\Boilerplate;
 
+use ElevenLab\Validation\Spec;
+use ElevenLab\Validation\ValidationFactory;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
-use Psr\SimpleCache\CacheInterface;
 use SDK\Boilerplate\Contracts\Hook;
-use SDK\Boilerplate\Http\HttpClient;
-use SDK\Boilerplate\Validation\Spec;
 use SDK\Boilerplate\Utils\RouteCompiler;
 use SDK\Boilerplate\Hooks\FailureHook;
 use SDK\Boilerplate\Hooks\SuccessHook;
 use SDK\Boilerplate\Hooks\PreSendHook;
-use SDK\Boilerplate\Http\GuzzleHttpClient;
 use SDK\Boilerplate\Exceptions\SdkException;
 use Illuminate\Validation\ValidationException;
-use SDK\Boilerplate\Exceptions\StatusException;
-use SDK\Boilerplate\Validation\ValidationFactory;
 use SDK\Boilerplate\Contracts\Request as IRequest;
 use SDK\Boilerplate\Contracts\Response as IResponse;
 use SDK\Boilerplate\Contracts\Action as ActionInterface;
@@ -33,51 +28,79 @@ abstract class Action implements ActionInterface
     protected $context;
 
     /**
-     * A cache instance
+     * The endpoint string
      *
-     * @var CacheInterface
+     * @var string
      */
-    protected $cache;
+    protected $route;
 
     /**
-     * The HTTP Client
+     * The HTTP verb
      *
-     * @var HttpClient
+     * @var string
      */
-    protected $client;
+    protected $verb;
+
+    /**
+     * The query parameters schema
+     *
+     * @var array
+     */
+    protected $queryParametersSchema = [];
 
     /**
      * Query parameters array
      *
      * @var array
      */
-    protected $queryParams = [];
+    protected $queryParameters = [];
+
+    /**
+     * The route parameters schema
+     *
+     * @var array
+     */
+    protected $routeParametersSchema = [];
 
     /**
      * Route parameters array
      *
      * @var array
      */
-    protected $urlParams = [];
+    protected $routeParameters = [];
 
     /**
      * Request headers array
      *
      * @var array
      */
-    protected $headers = [];
+    protected $defaultHeaders = [];
 
     /**
      * Request Body Object
      *
-     * @var ActionObject|ActionObjectCollection|null
+     * @var SdkObject|SdkObjectCollection|null
      */
     protected $requestBody;
 
     /**
+     * Request Body Class
+     *
+     * @var string
+     */
+    protected $requestBodyClass;
+
+    /**
+     * Response Body Class
+     *
+     * @var string
+     */
+    protected $responseBodyClass;
+
+    /**
      * Response Body Object
      *
-     * @var ActionObject|ActionObjectCollection
+     * @var SdkObject|SdkObjectCollection
      */
     protected $responseBody;
 
@@ -107,7 +130,7 @@ abstract class Action implements ActionInterface
      *
      * @var array
      */
-    protected $statusExceptions = [];
+    protected $errors = [];
 
     /**
      * The original request
@@ -138,13 +161,6 @@ abstract class Action implements ActionInterface
     protected $originalResponse;
 
     /**
-     * The action run state
-     *
-     * @var RunState
-     */
-    protected $runState;
-
-    /**
      * The response
      *
      * @var IResponse
@@ -154,30 +170,26 @@ abstract class Action implements ActionInterface
     /**
      * Action constructor.
      * @param Context $context
-     * @param CacheInterface $cache
-     * @param RunState $runState
      */
-    public function __construct(Context $context, CacheInterface $cache, RunState $runState = null)
+    public function __construct(Context $context)
     {
 
         $this->context = $context;
-        $this->cache = $cache;
-        $this->runState = $runState ?: new RunState();
-        $this->buildClient();
 
     }
 
-    protected function makeValidator(array $data, array $rules)
+    /**
+     * Validates data
+     *
+     * @param array $data
+     * @param array $rules
+     *
+     * @throws ValidationException
+     */
+    protected function validate(array $data, array $rules)
     {
-        return ValidationFactory::make($data, $rules);
-    }
-
-    protected function buildClient()
-    {
-        $this->client = new GuzzleHttpClient([
-            'timeout' => $this->context->getConfigValue('request_timeout', 20),
-            'verify' => $this->context->getConfigValue('verify_ssl_certs', true)
-        ]);
+        $validator = ValidationFactory::make($data, $rules);
+        $validator->validate();
     }
 
     /**
@@ -188,30 +200,6 @@ abstract class Action implements ActionInterface
     public function getContext()
     {
         return $this->context;
-    }
-
-    /**
-     * Get the cache instance
-     *
-     * @return CacheInterface
-     */
-    public function getCache()
-    {
-        return $this->cache;
-    }
-
-    /**
-     * Get the base url
-     *
-     * @return string
-     */
-    public function getBaseUrl()
-    {
-
-        return $baseUrl = Str::endsWith($this->getContext()->hostname, '/')
-            ? $this->getContext()->hostname
-            : $this->getContext()->hostname . '/';
-
     }
 
     /**
@@ -237,7 +225,7 @@ abstract class Action implements ActionInterface
     /**
      * Returns the Request Body Object
      *
-     * @return ActionObject|ActionObjectCollection|null
+     * @return SdkObject|SdkObjectCollection|null
      */
     public function getRequestBody()
     {
@@ -245,37 +233,13 @@ abstract class Action implements ActionInterface
     }
 
     /**
-     * Set the action run state
-     *
-     * @param RunState $runState
-     * @return $this
-     */
-    public function setRunState(RunState $runState)
-    {
-        $this->runState = $runState;
-        return $this;
-    }
-
-    /**
-     * Get the action run state
-     *
-     * @return RunState
-     */
-    public function getRunState()
-    {
-        return $this->runState;
-    }
-
-    /**
      * Set the request body object
      *
-     * @param ActionObject|ActionObjectCollection $object
-     * @throws ValidationException
+     * @param SdkObject|SdkObjectCollection $object
      */
     public function setRequestBody($object)
     {
 
-        $object->validate();
         $this->requestBody = $object;
 
     }
@@ -293,43 +257,12 @@ abstract class Action implements ActionInterface
     /**
      * Returns the response body object
      *
-     * @return ActionObject|ActionObjectCollection
+     * @return SdkObject|SdkObjectCollection
      */
     public function getResponseBody()
     {
         return $this->responseBody;
     }
-
-    /**
-     * Builds the endpoint
-     *
-     * @return string
-     * @throws ValidationException
-     */
-    protected function buildUrl()
-    {
-
-        $compiled = $this->buildRoute();
-        $baseUrl = $this->getBaseUrl();
-
-
-        return "$baseUrl$compiled";
-
-    }
-
-    /**
-     * Returns the request object class
-     *
-     * @return string
-     */
-    protected abstract function requestClass();
-
-    /**
-     * Returns the response object class
-     *
-     * @return string
-     */
-    protected abstract function responseClass();
 
 
     /**
@@ -338,34 +271,21 @@ abstract class Action implements ActionInterface
      * @return Request
      * @throws ValidationException
      */
-    protected function makeRequest()
+    protected function buildRequest()
     {
 
-        $this->makeValidator($this->queryParams, static::queryParametersSchema()->toValidationArray());
+        if($this->queryParametersSchema) {
+            $qpSchema = Spec::parse($this->queryParametersSchema);
+            $this->validate($this->queryParameters, $qpSchema->toValidationArray());
+        }
 
         return new Request(
             static::verb(),
-            $this->buildUrl(),
-            $this->queryParams,
-            $this->headers,
+            $this->buildRoute(),
+            $this->queryParameters,
+            $this->defaultHeaders,
             $this->buildBody()
         );
-
-    }
-
-    /**
-     * Builds the route parameters validation schema
-     *
-     * @return Spec
-     */
-    public static function routeParametersSchema()
-    {
-
-        return Spec::parse([
-            'rules' => ['nullable'],
-            'schema' => [],
-            'type' => "object"
-        ]);
 
     }
 
@@ -376,54 +296,7 @@ abstract class Action implements ActionInterface
      */
     public function getRouteParameters()
     {
-        return $this->urlParams;
-    }
-
-    /**
-     * Set the header key
-     *
-     * @param $key
-     * @param $value
-     * @return $this
-     */
-    public function setHeader($key, $value)
-    {
-        Arr::set($this->headers, $key, $value);
-        return $this;
-    }
-
-    /**
-     * Set the headers
-     *
-     * @param array $headers
-     * @return $this
-     */
-    public function setHeaders(array $headers)
-    {
-        $this->headers = $headers;
-        return $this;
-    }
-
-    /**
-     * Get the header value
-     *
-     * @param $key
-     * @param null $default
-     * @return mixed
-     */
-    public function getHeader($key, $default = null)
-    {
-        return Arr::get($this->headers, $key, $default);
-    }
-
-    /**
-     * Get the headers
-     *
-     * @return array
-     */
-    public function getHeaders()
-    {
-        return $this->headers;
+        return $this->routeParameters;
     }
 
     /**
@@ -435,7 +308,7 @@ abstract class Action implements ActionInterface
      */
     public function addRouteParameter($key, $value)
     {
-        Arr::set($this->urlParams, $key, $value);
+        Arr::set($this->routeParameters, $key, $value);
         return $this;
     }
 
@@ -447,23 +320,7 @@ abstract class Action implements ActionInterface
      */
     public function removeRouteParameter($key)
     {
-        Arr::forget($this->urlParams, $key);
-        return $this;
-    }
-
-    /**
-     * Set the route parameters array
-     *
-     * @param array|ActionObject $routeParameters
-     * @return $this
-     * @throws SdkException
-     */
-    public function setRouteParameters($routeParameters)
-    {
-        if(!is_array($routeParameters) && !($routeParameters instanceof ActionObject))
-            throw new SdkException('Route parameters must be an array or instance of an ActionObject');
-
-        $this->urlParams = is_array($routeParameters) ? $routeParameters : $routeParameters->toArray();
+        Arr::forget($this->routeParameters, $key);
         return $this;
     }
 
@@ -476,25 +333,10 @@ abstract class Action implements ActionInterface
     protected function buildRoute()
     {
 
-        $validator = $this->makeValidator($this->urlParams, static::routeParametersSchema()->toValidationArray());
-        $validator->validate();
-        return RouteCompiler::compile(static::route(), $this->urlParams);
+        $rpSchema = Spec::parse($this->routeParametersSchema);
+        $this->validate($this->routeParameters, $rpSchema->toValidationArray());
 
-    }
-
-    /**
-     * Builds the query parameters validation schema
-     *
-     * @return Spec
-     */
-    public static function queryParametersSchema()
-    {
-
-        return Spec::parse([
-            'rules' => ['nullable'],
-            'schema' => [],
-            'type' => "object"
-        ]);
+        return RouteCompiler::compile(static::route(), $this->routeParameters);
 
     }
 
@@ -505,7 +347,7 @@ abstract class Action implements ActionInterface
      */
     public function getQueryParameters()
     {
-        return $this->queryParams;
+        return $this->queryParameters;
     }
 
     /**
@@ -517,7 +359,7 @@ abstract class Action implements ActionInterface
      */
     public function addQueryParameter($key, $value)
     {
-        Arr::set($this->queryParams, $key, $value);
+        Arr::set($this->queryParameters, $key, $value);
         return $this;
     }
 
@@ -529,24 +371,7 @@ abstract class Action implements ActionInterface
      */
     public function removeQueryParameter($key)
     {
-        Arr::forget($this->queryParams, $key);
-        return $this;
-    }
-
-    /**
-     * Set the query parameters array
-     *
-     * @param array|ActionObject $queryParams
-     * @return $this
-     * @throws SdkException
-     */
-    public function setQueryParameters($queryParams)
-    {
-
-        if(!is_array($queryParams) && !($queryParams instanceof ActionObject))
-            throw new SdkException('Route parameters must be an array or instance of an ActionObject');
-
-        $this->queryParams = is_array($queryParams) ? $queryParams : $queryParams->toArray();
+        Arr::forget($this->queryParameters, $key);
         return $this;
     }
 
@@ -554,7 +379,6 @@ abstract class Action implements ActionInterface
      * Builds the request body
      *
      * @return array
-     * @throws ValidationException
      */
     protected function buildBody()
     {
@@ -563,7 +387,6 @@ abstract class Action implements ActionInterface
             return null;
         }
 
-        $this->requestBody->validate();
         return $this->requestBody->toArray();
 
     }
@@ -617,34 +440,10 @@ abstract class Action implements ActionInterface
         $this->successHooks[] = $hookClass;
     }
 
-
-    /**
-     * Add a status code exception
-     *
-     * @param mixed $statusCode
-     * @param string $exceptionClass
-     * @throws SdkException
-     */
-    public function addStatusException($statusCode, $exceptionClass)
-    {
-
-        if(!is_string($exceptionClass))
-            throw new SdkException("Exception class in status exceptions must be a string");
-
-        if(!is_subclass_of(StatusException::class, $exceptionClass))
-            throw new SdkException(
-                "Status exceptions must implement interface " . StatusException::class
-            );
-
-        $this->statusExceptions[(string)$statusCode] = $exceptionClass;
-
-    }
-
     /**
      * Run some hooks
      *
      * @param array $hooks
-     * @param RunState $state
      */
     public function runHooks(array $hooks)
     {
@@ -652,48 +451,55 @@ abstract class Action implements ActionInterface
         foreach ($hooks as $hookClass) {
 
             if(is_subclass_of( PreSendHook::class, $hookClass)) {
-                $hookInstance = new $hookClass($this, $this->request);
+                $hookInstance = new $hookClass($this->context, $this->request);
             } else if(is_subclass_of( FailureHook::class, $hookClass)) {
-                $hookInstance = new $hookClass($this, $this->response, $this->clientException);
+                $hookInstance = new $hookClass($this->context, $this->request, $this->response, $this->clientException);
             } else {
-                $hookInstance = new $hookClass($this, $this->response);
+                $hookInstance = new $hookClass($this->context, $this->request, $this->response);
             }
 
             /**
              * @var Hook $hookInstance
              */
-            $hookInstance->run($this->runState);
+            $hookInstance->run();
         }
 
     }
 
     /**
-     * Raise the proper status exception
      *
-     * @throws StatusException
+     * @param IResponse $response
+     *
+     * @return string
      */
-    protected function raiseStatusException()
+    protected function getExceptionKey(IResponse $response)
     {
 
-        $statusCode = $this->response->statusCode();
-        if(array_key_exists($statusCode, $this->statusExceptions)) {
+        return (string)($response->statusCode());
 
-            $exception = new $this->statusExceptions[$statusCode]($this);
+    }
+
+    /**
+     * Returns the proper status exception
+     *
+     * @param string $key
+     *
+     * @return SdkException
+     */
+    protected function getException($key)
+    {
+
+        if(array_key_exists($key, $this->errors)) {
+
+            $exception = new $this->errors[$key]($this);
 
         } else {
 
-            $exception = new StatusException($this, static::class . " failed with status {$statusCode}");
+            $exception = new SdkException(static::class . " failed with status {$key}", $key);
 
         }
 
-        /**
-         *
-         * @var StatusException
-         */
-        $exception->setRequest($this->request);
-        $exception->setResponse($this->response);
-
-        throw $exception;
+        return $exception;
 
     }
 
@@ -705,11 +511,10 @@ abstract class Action implements ActionInterface
     protected function validateRequest()
     {
 
-        $requestClass = $this->requestClass();
+        $requestClass = $this->requestBodyClass;
         if(empty($requestClass)) return;
         $schema = $requestClass::schema();
-        $validator = $this->makeValidator($this->request->body(), $schema);
-        $validator->validate();
+        $this->validate($this->request->body(), $schema);
 
     }
 
@@ -721,34 +526,36 @@ abstract class Action implements ActionInterface
     protected function validateResponse()
     {
 
-        $responseClass = $this->responseClass();
+        $responseClass = $this->responseBodyClass;
+        if(empty($responseClass)) return;
         $schema = $responseClass::schema();
-        $validator = $this->makeValidator($this->response->body(), $schema);
-        $validator->validate();
+        $this->validate($this->response->body(), $schema);
 
     }
 
     /**
      * Runs the action and returns the response
      *
-     * @return ActionObject|ActionObjectCollection
-     * @throws \Exception|StatusException
+     * @return SdkObject|SdkObjectCollection|array
+     * @throws \Exception|SdkException
      */
     public function run()
     {
 
-        $this->originalRequest = $this->request = $this->makeRequest();
+        $this->originalRequest = $this->request = $this->buildRequest();
         $this->runHooks($this->preSendHooks);
 
         try {
 
             $this->validateRequest();
-            $this->originalResponse = $this->response = $this->client->send($this->request);
+            $this->originalResponse = $this->response = $this->context->getClient()->send($this->request);
 
         } catch (\Exception $e) {
 
             $this->clientException = $e;
-            if($this->client->hasResponse()) $this->originalResponse = $this->response = $this->client->getResponse();
+            if($this->context->getClient()->hasResponse())
+                $this->originalResponse = $this->response = $this->context->getClient()->getResponse();
+
             $this->runHooks($this->failureHooks);
 
             if(is_null($this->response)) throw $e;
@@ -756,14 +563,19 @@ abstract class Action implements ActionInterface
         }
 
         if($this->response->statusCode() >= 300) {
-            $this->raiseStatusException();
+            $exception = $this->getException($this->getExceptionKey($this->response));
+            $this->clientException = $exception;
+            $this->runHooks($this->failureHooks);
+            throw $exception;
         }
 
 
         $this->runHooks($this->successHooks);
-        $responseBodyClass = static::responseClass();
+        $this->validateResponse();
+
+        $responseBodyClass = $this->responseBodyClass;
+        if(empty($responseBodyClass)) return $this->response->body();
         $this->responseBody =  $responseBodyClass::parse($this->response->body());
-        $this->responseBody->validate();
 
         return $this->responseBody;
 

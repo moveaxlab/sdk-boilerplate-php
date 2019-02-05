@@ -2,12 +2,18 @@
 
 namespace SDK\Boilerplate\Hooks;
 
-use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Contracts\FailureHook as FailureHookInterface;
+use SDK\Boilerplate\Context;
+use SDK\Boilerplate\Contracts\Request;
 use SDK\Boilerplate\Contracts\Response;
+use SDK\Boilerplate\Contracts\FailureHook as FailureHookInterface;
 
 abstract class FailureHook implements FailureHookInterface
 {
+
+    /**
+     * @var Request
+     */
+    protected $request;
 
     /**
      * @var Response
@@ -15,9 +21,9 @@ abstract class FailureHook implements FailureHookInterface
     protected $response;
 
     /**
-     * @var Action
+     * @var Context
      */
-    protected $action;
+    protected $context;
 
     /**
      * @var \Throwable
@@ -26,27 +32,29 @@ abstract class FailureHook implements FailureHookInterface
 
     /**
      * FailureHook constructor.
-     * @param Action $action
+     * @param Context $context
+     * @param Request $request
      * @param Response|null $response
      * @param \Throwable|null $exception
      */
-    public function __construct(Action $action, Response $response = null, \Throwable $exception = null)
+    public function __construct(Context $context, Request $request, Response $response = null, \Throwable $exception = null)
     {
 
-        $this->action = $action;
-        $this->response = &$response;
+        $this->context = $context;
         $this->exception = $exception;
+        $this->response = clone $response;
+        $this->request = $request;
 
     }
 
     /**
-     * Get the action
+     * Get the context
      *
-     * @return Action
+     * @return Context
      */
-    public function getAction()
+    public function getContext()
     {
-        return $this->action;
+        return $this->context;
     }
 
     /**
@@ -67,6 +75,16 @@ abstract class FailureHook implements FailureHookInterface
     public function getResponse()
     {
         return $this->response;
+    }
+
+    /**
+     * Get the request object
+     *
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
     }
 
     /**

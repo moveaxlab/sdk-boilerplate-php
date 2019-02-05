@@ -1,24 +1,48 @@
 <?php
 
 namespace SDK\Boilerplate;
-use Illuminate\Support\Arr;
+use Psr\SimpleCache\CacheInterface;
+use SDK\Boilerplate\Cache\DummyCache;
+use SDK\Boilerplate\Http\GuzzleHttpClient;
+use SDK\Boilerplate\Http\HttpClient;
 
 
 /**
  * Class Context
  * @package SDK\Boilerplate
  *
- * @property string $hostname The hostname string
  */
-class Context
+abstract class Context
 {
 
     /**
-     * The context parameters array
+     * The config parameters
      *
-     * @var array
+     * @var Config
      */
-    protected $parameters = [];
+    public $config;
+
+    /**
+     * Hostname address
+     *
+     * @var string
+     */
+    protected $hostname;
+
+    /**
+     * The HTTP client
+     *
+     * @var HttpClient
+     */
+    protected $client;
+
+    /**
+     * The Cache instance
+     *
+     * @var CacheInterface
+     */
+    protected $cache;
+
 
     /**
      * Context constructor.
@@ -30,53 +54,72 @@ class Context
     {
 
         $this->hostname = $hostname;
-        foreach ($config as $key => $value) {
-            $this->$key = $value;
-        }
+        $this->config = new Config($config);
+        $this->client = $this->buildClient();
+        $this->cache = $this->buildCache();
 
     }
 
     /**
-     * Returns the parameter value for the specified key or a default value
+     * Returns the config instance
      *
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
+     * @return \SDK\Boilerplate\Config
      */
-    public function getConfigValue($key, $default = null)
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    /**
+     * Returns the hostname
+     *
+     * @return string
+     */
+    public function getHostname()
+    {
+        return $this->hostname;
+    }
+
+    /**
+     * Returns the HttpClient
+     *
+     * @return HttpClient
+     */
+    public function getClient()
+    {
+        return $this->client;
+    }
+
+    /**
+     * Returns the Cache instance
+     *
+     * @return CacheInterface
+     */
+    public function getCache()
+    {
+        return $this->cache;
+    }
+
+    /**
+     * Returns the an Http Client instance
+     *
+     * @return HttpClient
+     */
+    protected function buildClient()
     {
 
-        return $this->$key ?: $default;
+        return new GuzzleHttpClient($this->hostname, $this->config->get('http', []));
 
     }
 
     /**
-     * Dynamically retrieve context parameters
+     * Returns a Cache instance
      *
-     * @param $key
-     * @return mixed|null
+     * @return CacheInterface
      */
-    public function __get($key)
+    protected function buildCache()
     {
-
-        return Arr::get($this->parameters, $key);
-
-    }
-
-    /**
-     * Dynamically set a context parameter
-     *
-     * @param $key
-     * @param $value
-     * @return void
-     */
-    public function __set($key, $value)
-    {
-
-        if(!$key) return null;
-
-        Arr::set($this->parameters, $key, $value);
-
+        return new DummyCache();
     }
 
 

@@ -3,7 +3,7 @@
 namespace SDK\Boilerplate\Contracts;
 
 
-use SDK\Boilerplate\Validation\Spec;
+use ElevenLab\Validation\Spec;
 
 interface Schemable
 {

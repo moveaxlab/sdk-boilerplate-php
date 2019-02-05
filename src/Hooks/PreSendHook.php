@@ -2,9 +2,9 @@
 
 namespace SDK\Boilerplate\Hooks;
 
-use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Contracts\PreSendHook as PreSendHookInterface;
+use SDK\Boilerplate\Context;
 use SDK\Boilerplate\Contracts\Request;
+use SDK\Boilerplate\Contracts\PreSendHook as PreSendHookInterface;
 
 abstract class PreSendHook implements PreSendHookInterface
 {
@@ -15,29 +15,29 @@ abstract class PreSendHook implements PreSendHookInterface
     protected $request;
 
     /**
-     * @var Action
+     * @var Context
      */
-    protected $action;
+    protected $context;
 
     /**
      * PreSendHook constructor.
-     * @param Action $action
+     * @param Context $context
      * @param Request $request
      */
-    public function __construct(Action $action, Request $request)
+    public function __construct(Context $context, Request $request)
     {
-        $this->action = $action;
+        $this->context = $context;
         $this->request = &$request;
     }
 
     /**
-     * Return the action
+     * Return the context
      *
-     * @return Action
+     * @return Context
      */
-    public function getAction()
+    public function getContext()
     {
-        return $this->action;
+        return $this->context;
     }
 
     /**

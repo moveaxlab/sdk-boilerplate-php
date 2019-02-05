@@ -3,12 +3,20 @@
 namespace SDK\Boilerplate;
 
 
+use ElevenLab\Validation\Spec;
+use ElevenLab\Validation\ValidationFactory;
 use Illuminate\Support\Collection;
 use SDK\Boilerplate\Contracts\Schemable;
-use SDK\Boilerplate\Validation\ValidationFactory;
 
-abstract class ActionObjectCollection extends Collection implements Schemable
+abstract class SdkObjectCollection extends Collection implements Schemable
 {
+
+    /**
+     * Class of the sub elements
+     *
+     * @var string
+     */
+    protected $elementsClass;
 
     /**
      * Originally passed items
@@ -17,17 +25,38 @@ abstract class ActionObjectCollection extends Collection implements Schemable
      */
     protected $originalData;
 
+    /**
+     * SdkObjectCollection constructor.
+     * @param array $items
+     */
     public function __construct($items = [])
     {
 
         $this->originalData = $items;
-        $actionObjectClass = $this->elementsClass();
+        $elementClass = $this->elementsClass;
 
-        $items = array_map(function($item) use($actionObjectClass){
-           return $actionObjectClass::parse($item);
-        }, $items);
+        if(!Spec::isPrimitiveType($elementClass))
+        {
+            $items = $this->parseSdkObjects($items);
+        }
 
         parent::__construct($items);
+
+    }
+
+    /**
+     * Parses items as SdkObject instances
+     *
+     * @param $items
+     * @return array
+     */
+    protected function parseSdkObjects(array $items)
+    {
+
+        $class = $this->elementsClass;
+        return array_map(function($item) use($class){
+            return $class::parse($item);
+        }, $items);
 
     }
 
@@ -45,20 +74,13 @@ abstract class ActionObjectCollection extends Collection implements Schemable
      * Parse an array of items into a collection of ActionObjects
      *
      * @param array $items
-     * @return ActionObjectCollection
+     * @return SdkObjectCollection
      */
     public static function parse($items = []) {
 
         return new static($items);
 
     }
-
-    /**
-     * Specify the class of the elements
-     *
-     * @return string
-     */
-    protected abstract function elementsClass();
 
     /**
      * Make the object validator

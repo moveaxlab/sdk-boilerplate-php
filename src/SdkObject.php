@@ -3,14 +3,14 @@
 namespace SDK\Boilerplate;
 
 
+use ElevenLab\Validation\ValidationFactory;
 use Illuminate\Support\Arr;
 use SDK\Boilerplate\Contracts\Schemable;
 use SDK\Boilerplate\Traits\HasAttributes;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Contracts\Support\Arrayable;
-use SDK\Boilerplate\Validation\ValidationFactory;
 
-abstract class ActionObject implements Schemable, Arrayable, Jsonable, \JsonSerializable, \ArrayAccess
+abstract class SdkObject implements Schemable, Arrayable, Jsonable, \JsonSerializable, \ArrayAccess
 {
 
     use HasAttributes;
@@ -23,7 +23,14 @@ abstract class ActionObject implements Schemable, Arrayable, Jsonable, \JsonSeri
     protected $originalData;
 
     /**
-     * ActionObject constructor
+     * Sub objects array
+     *
+     * @var array
+     */
+    protected $subObjects = [];
+
+    /**
+     * SdkObject constructor
      * .
      * @param array $attributes
      */
@@ -50,7 +57,7 @@ abstract class ActionObject implements Schemable, Arrayable, Jsonable, \JsonSeri
      * Parse the object from an array of attributes
      *
      * @param array|string $data
-     * @return ActionObject
+     * @return SdkObject
      */
     public static function parse($data)
     {
@@ -62,13 +69,6 @@ abstract class ActionObject implements Schemable, Arrayable, Jsonable, \JsonSeri
     }
 
     /**
-     * Define the sub-objects
-     *
-     * @return array
-     */
-    protected abstract function subObjects();
-
-    /**
      * Parse the sub-objects if any
      *
      * @param array $attributes
@@ -78,11 +78,10 @@ abstract class ActionObject implements Schemable, Arrayable, Jsonable, \JsonSeri
     {
 
         $parsedAttributes = $attributes;
-        $subObjects = $this->subObjects();
 
-        if(!count($subObjects)) return $attributes;
+        if(!count($this->subObjects)) return $attributes;
 
-        foreach ($subObjects as $key => $class)
+        foreach ($this->subObjects as $key => $class)
         {
 
             if(Arr::has($attributes, $key) && is_array($attributes[$key])) {
@@ -111,7 +110,7 @@ abstract class ActionObject implements Schemable, Arrayable, Jsonable, \JsonSeri
 
         foreach ($array as $attribute => $value)
         {
-            if(static::subObjects() && array_key_exists($attribute, static::subObjects())) {
+            if($this->subObjects && array_key_exists($attribute, $this->subObjects)) {
                 $transformed[$attribute] = $value->toArray();
             } else {
                 $transformed[$attribute] = $value;

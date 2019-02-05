@@ -14,4 +14,9 @@ interface ActionFactory extends Factory
      */
     static function actions();
 
+    /**
+     * @inheritdoc
+     */
+    public function make($what = null, ...$parameters);
+
 }

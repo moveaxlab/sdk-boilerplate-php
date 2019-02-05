@@ -2,6 +2,7 @@
 
 namespace SDK\Boilerplate;
 
+use SDK\Boilerplate\Http\HttpClient;
 use SDK\Boilerplate\Utils\QueryBuilder;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\ParameterBag;
@@ -32,11 +33,11 @@ class Request implements RequestInterface
     protected $method;
 
     /**
-     * Request url
+     * Request route
      *
      * @var string
      */
-    protected $url;
+    protected $route;
 
     /**
      * Request body
@@ -47,17 +48,18 @@ class Request implements RequestInterface
 
     /**
      * Request constructor.
+     *
      * @param string $method
-     * @param string $url
+     * @param string $route
      * @param array $query
      * @param array $headers
      * @param mixed $body
      */
-    public function __construct($method, $url, array $query = [], array $headers = [], $body = [])
+    public function __construct($method, $route, array $query = [], array $headers = [], $body = [])
     {
 
         $this->method = $method;
-        $this->url = $url;
+        $this->route = $route;
         $this->query = new ParameterBag($query);
         $this->headers = new ParameterBag($headers);
         $this->body = $body;
@@ -155,9 +157,19 @@ class Request implements RequestInterface
     /**
      * @inheritdoc
      */
-    public function url()
+    public function route()
     {
-        return $this->url;
+        return $this->route;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function send()
+    {
+
+        return $this->client->send($this);
+
     }
 
 }

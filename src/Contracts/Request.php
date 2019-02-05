@@ -18,7 +18,7 @@ interface Request
      *
      * @return string
      */
-    public function url();
+    public function route();
 
     /**
      * Return the headers array
@@ -87,5 +87,6 @@ interface Request
      * @return array
      */
     public function body();
+
 
 }

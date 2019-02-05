@@ -3,32 +3,11 @@
 namespace SDK\Boilerplate\Http;
 
 
-use SDK\Boilerplate\Contracts\Request;
-use SDK\Boilerplate\Contracts\Response;
+use SDK\Boilerplate\Contracts\Client;
 
-interface HttpClient
+interface HttpClient extends Client
 {
 
-    /**
-     * Send the request
-     *
-     * @param $request
-     * @return Response
-     */
-    public function send(Request $request);
 
-    /**
-     * Check if the client has an associated response
-     *
-     * @return bool
-     */
-    public function hasResponse();
-
-    /**
-     * Returns the response
-     *
-     * @return Response
-     */
-    public function getResponse();
 
 }

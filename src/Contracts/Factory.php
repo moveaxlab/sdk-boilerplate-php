@@ -9,9 +9,10 @@ interface Factory
     /**
      * Make an action
      *
-     * @param string $what
-     * @return Action
+     * @param array $parameters
+     * @param mixed $what
+     * @return mixed
      */
-    function make($what);
+    function make($what = null, ...$parameters);
 
 }

@@ -2,12 +2,18 @@
 
 namespace SDK\Boilerplate\Hooks;
 
-use SDK\Boilerplate\Action;
-use SDK\Boilerplate\Contracts\SuccessHook as SuccessHookInterface;
+use SDK\Boilerplate\Context;
+use SDK\Boilerplate\Contracts\Request;
 use SDK\Boilerplate\Contracts\Response;
+use SDK\Boilerplate\Contracts\SuccessHook as SuccessHookInterface;
 
 abstract class SuccessHook implements SuccessHookInterface
 {
+
+    /**
+     * @var Request
+     */
+    protected $request;
 
     /**
      * @var Response
@@ -15,31 +21,33 @@ abstract class SuccessHook implements SuccessHookInterface
     protected $response;
 
     /**
-     * @var Action
+     * @var Context
      */
-    protected $action;
+    protected $context;
 
     /**
      * SuccessHook constructor.
-     * @param Action $action
-     * @param Response|null $response
+     * @param Context $context
+     * @param Request $request
+     * @param Response $response
      */
-    public function __construct(Action $action, Response $response)
+    public function __construct(Context $context, Request $request, Response $response)
     {
 
-        $this->action = $action;
+        $this->context = $context;
+        $this->request = $request;
         $this->response = &$response;
 
     }
 
     /**
-     * Get the action
+     * Get the context
      *
-     * @return Action
+     * @return Context
      */
-    public function getAction()
+    public function getContext()
     {
-        return $this->action;
+        return $this->context;
     }
 
     /**
@@ -60,6 +68,16 @@ abstract class SuccessHook implements SuccessHookInterface
     public function getResponse()
     {
         return $this->response;
+    }
+
+    /**
+     * Get the request object
+     *
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
     }
 
 
