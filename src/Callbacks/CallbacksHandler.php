@@ -3,6 +3,7 @@
 namespace SDK\Boilerplate\Callbacks;
 
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use SDK\Boilerplate\Context;
 use SDK\Boilerplate\SdkObject;
@@ -25,85 +26,50 @@ abstract class CallbacksHandler
     protected $context;
 
     /**
-     * Headers list
-     *
-     * @var array
-     */
-    protected $headers;
-
-    /**
-     * Request body
-     *
-     * @var string
-     */
-    protected $body;
-
-    /**
      * CallbacksHandler constructor.
      *
-     * @param array $headers
-     * @param string $body
      * @param Context $context
      */
-    public function __construct(Context $context, array $headers, $body)
+    public function __construct(Context $context)
     {
 
         $this->context = $context;
-        $this->headers = $headers;
-        $this->body = $body;
-
-    }
-
-    /**
-     * Returns an instance of the CallbackHandler from the PHP Globals
-     *
-     * @param Context $context
-     * @return CallbacksHandler
-     */
-    public static function createFromGlobals(Context $context)
-    {
-
-        $request = Request::createFromGlobals();
-        $body = $request->getContent();
-        $headers = $request->headers->all();
-
-        return new static($context, $headers, $body);
 
     }
 
     /**
      * Parse the callback from global PHP variables such as $_SERVER, $_HTTP, ...
      *
-     * @param Context $context
      *
      * @return SdkObject|SdkObjectCollection
      * @throws
      */
-    public static function parseFromGlobals(Context $context)
+    public function parseFromGlobals()
     {
 
         $request = Request::createFromGlobals();
         $body = $request->getContent();
         $headers = $request->headers->all();
 
-        $handler = new static($context, $headers, $body);
-
-        return $handler->parse();
+        return $this->parse($headers, $body);
     }
 
     /**
      * Parse the received callback
      *
+     * @param array $headers
+     * @param string $body
+     *
      * @return SdkObject|SdkObjectCollection
      * @throws CallbackVerificationException|CallbackParsingException
      */
-    public function parse()
+    public function parse(array $headers, $body)
     {
 
-        if(!$this->verify())
+        if(!$this->verify($headers, $body))
             throw new CallbackVerificationException();
 
-        $key = $this->getCallbackNamespace();
+        $key = $this->getCallbackNamespace($headers, $body);
         if(!array_key_exists($key, $this->callbacks))
             throw new CallbackParsingException("Could not find Callback class for key '$key'");
 
@@ -114,7 +80,7 @@ abstract class CallbacksHandler
             !is_subclass_of($callbackClass, SdkObjectCollection::class, true)
         )
 
-        $body = $this->parseBody();
+        $body = $this->parseBody($headers, $body);
 
         return $callbackClass::parse($body);
 
@@ -123,37 +89,36 @@ abstract class CallbacksHandler
     /**
      * Parses the body or returns the raw body
      *
-     * @return mixed|string
-     */
-    protected function parseBody()
-    {
-        return Str::contains($this->headers['Content-Type'], ['/json', '+json']) ?
-            json_decode($this->body, true) :
-            $this->body;
-    }
-
-    /**
-     * Returns the parsed body
+     * @param array $headers
+     * @param string $body
      *
      * @return mixed|string
      */
-    public function getCallbackBody()
+    protected function parseBody(array $headers, $body)
     {
-        return $this->parseBody();
+        return Arr::has($headers, 'Content-Type') && Str::contains($headers['Content-Type'], ['/json', '+json']) ?
+            json_decode($body, true) :
+            $body;
     }
 
     /**
      * Defines how to retrieve the $callbacks mapping key from the received request
      *
+     * @param array $headers
+     * @param string $body
+     *
      * @return string
      */
-    abstract protected function getCallbackNamespace();
+    abstract protected function getCallbackNamespace(array $headers, $body);
 
     /**
      * Verifies the received data
      *
+     * @param array $headers
+     * @param string $body
+     *
      * @return bool
      */
-    abstract protected function verify();
+    abstract protected function verify(array $headers, $body);
 
 }
