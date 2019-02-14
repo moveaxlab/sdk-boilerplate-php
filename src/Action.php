@@ -280,7 +280,7 @@ abstract class Action implements ActionInterface
         }
 
         return new Request(
-            static::verb(),
+            $this->verb,
             $this->buildRoute(),
             $this->queryParameters,
             $this->defaultHeaders,
@@ -333,10 +333,12 @@ abstract class Action implements ActionInterface
     protected function buildRoute()
     {
 
-        $rpSchema = Spec::parse($this->routeParametersSchema);
-        $this->validate($this->routeParameters, $rpSchema->toValidationArray());
+        if($this->routeParametersSchema) {
+            $rpSchema = Spec::parse($this->routeParametersSchema);
+            $this->validate($this->routeParameters, $rpSchema->toValidationArray());
+        }
 
-        return RouteCompiler::compile(static::route(), $this->routeParameters);
+        return RouteCompiler::compile($this->route, $this->routeParameters);
 
     }
 
@@ -514,7 +516,7 @@ abstract class Action implements ActionInterface
         $requestClass = $this->requestBodyClass;
         if(empty($requestClass)) return;
         $schema = $requestClass::schema();
-        $this->validate($this->request->body(), $schema);
+        $this->validate($this->request->body(), $schema->toValidationArray());
 
     }
 
@@ -529,7 +531,7 @@ abstract class Action implements ActionInterface
         $responseClass = $this->responseBodyClass;
         if(empty($responseClass)) return;
         $schema = $responseClass::schema();
-        $this->validate($this->response->body(), $schema);
+        $this->validate($this->response->body(), $schema->toValidationArray());
 
     }
 
