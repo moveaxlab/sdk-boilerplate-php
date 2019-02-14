@@ -39,7 +39,7 @@ class GuzzleHttpClient implements HttpClient
      */
     protected $defaultConfig = [
         'timeout' => 20,
-        'verify_ssl_certs' => true
+        'verify' => true
     ];
 
     /**
@@ -51,8 +51,11 @@ class GuzzleHttpClient implements HttpClient
     public function __construct($hostname, array $config = [])
     {
 
+        $this->hostname = $hostname;
         $config = array_merge($this->defaultConfig, $config);
-        $this->client = new Client($config);
+        $this->client = new Client($config + [
+            'base_uri' => $this->hostname
+        ]);
 
     }
 
@@ -67,7 +70,7 @@ class GuzzleHttpClient implements HttpClient
             $request->method(),
             $this->buildUrl($request->route(), $request->queryString()),
             $request->headers(),
-            $request->body()
+            json_encode($request->body())
         );
 
         try {
@@ -86,15 +89,11 @@ class GuzzleHttpClient implements HttpClient
     protected function buildUrl($route, $queryString)
     {
 
-        $hostname = Str::endsWith($this->hostname, '/') ?
-            Str::replaceLast('/', '', $this->hostname) :
-            $this->hostname;
-
         $route = Str::startsWith($route, '/') ?
             Str::replaceFirst('/', '', $route)
             : $route;
 
-        return "$hostname/$route$queryString";
+        return "$route$queryString";
 
     }
 

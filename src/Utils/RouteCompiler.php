@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 class RouteCompiler
 {
 
-    public static function compile($path, $params)
+    public static function compile(z$path, $params)
     {
 
         foreach($params as $key => $value) {
