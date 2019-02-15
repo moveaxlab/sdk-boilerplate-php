@@ -49,7 +49,12 @@ abstract class CallbacksHandler
 
         $request = Request::createFromGlobals();
         $body = $request->getContent();
-        $headers = $request->headers->all();
+        $headers = [];
+
+        foreach ($request->headers->all() as $key => $value)
+        {
+            $headers[$key] = is_array($value) ? reset($value) : $value;
+        }
 
         return $this->parse($headers, $body);
     }
@@ -65,6 +70,8 @@ abstract class CallbacksHandler
      */
     public function parse(array $headers, $body)
     {
+
+        $headers = array_change_key_case($headers, CASE_LOWER);
 
         if(!$this->verify($headers, $body))
             throw new CallbackVerificationException();
@@ -96,7 +103,7 @@ abstract class CallbacksHandler
      */
     protected function parseBody(array $headers, $body)
     {
-        return Arr::has($headers, 'Content-Type') && Str::contains($headers['Content-Type'], ['/json', '+json']) ?
+        return Arr::has($headers, 'content-type') && Str::contains($headers['content-type'], ['/json', '+json']) ?
             json_decode($body, true) :
             $body;
     }
