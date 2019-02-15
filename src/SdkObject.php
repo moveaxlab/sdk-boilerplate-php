@@ -87,9 +87,11 @@ abstract class SdkObject implements Schemable, Arrayable, Jsonable, \JsonSeriali
             if(Arr::has($attributes, $key) && is_array($attributes[$key])) {
                 $subObject = Arr::isAssoc($attributes[$key]) ?
                     new $class($attributes[$key])
-                    : array_map(function($elem) use($class) { return new $class($elem); }, $attributes[$key]);
+                    : collect(
+                        array_map(function($elem) use($class) { return new $class($elem); }, $attributes[$key])
+                    );
 
-                $parsedAttributes[$key] = collect($subObject);
+                $parsedAttributes[$key] = $subObject;
             }
 
         }
