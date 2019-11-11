@@ -566,6 +566,7 @@ abstract class Action implements ActionInterface
 
         if($this->response->statusCode() >= 300) {
             $exception = $this->getException($this->getExceptionKey($this->response));
+            $exception->setDebugInfo($this->buildDebugInfo($this->request, $this->response));
             $this->clientException = $exception;
             $this->runHooks($this->failureHooks);
             throw $exception;
@@ -581,6 +582,54 @@ abstract class Action implements ActionInterface
 
         return $this->responseBody;
 
+    }
+
+    /**
+     * Converts an array to a tabbed JSON
+     *
+     * @param $array
+     * @param int $tabs
+     * @return string
+     */
+    private function serializeArrayToJSON($array, $tabs = 0) {
+        $sep = str_pad("", $tabs, " ");
+        $encoded = json_encode($array, JSON_PRETTY_PRINT);
+
+        return $sep . join("\n$sep", explode(PHP_EOL, $encoded));
+    }
+
+    /**
+     * Convert an array to a tabbed {key}: {value} list
+     *
+     * @param $array
+     * @param int $tabs
+     * @return string
+     */
+    private function arrayToInfoString($array, $tabs = 0) {
+        $sep = str_pad("", $tabs, "");
+        $output = "";
+        foreach ($array as $key => $value) {
+            $output .= "$sep$key: $value\n";
+        }
+        return $output;
+    }
+
+    /**
+     * @param IRequest $request
+     * @param IResponse $response
+     * @return string
+     */
+    private function buildDebugInfo(IRequest $request, IResponse $response) {
+
+        return "Request:\n\n" .
+            "   Route: {$request->route()}\n" .
+            "   Headers: \n" . $this->arrayToInfoString($request->headers(), 2) .
+            "   Body: \n" . $this->serializeArrayToJSON($request->body(), 2) . "\n" .
+            "   Query Parameters: \n" . $this->arrayToInfoString($request->query(), 2) . "\n\n\n" .
+            "Response:\n\n" .
+            "   Headers: \n" . $this->arrayToInfoString($response->headers(), 2) . "\n" .
+            "   Status: {$response->statusCode()}\n".
+            "   Body:\n" . $this->serializeArrayToJSON($response->body(), 2) . "\n";
     }
 
 
