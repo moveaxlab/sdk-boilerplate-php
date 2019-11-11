@@ -2,10 +2,6 @@
 
 namespace SDK\Boilerplate\Contracts;
 
-
-
-use SDK\Boilerplate\RunState;
-
 interface Hook
 {
 
